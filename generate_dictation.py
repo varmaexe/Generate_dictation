@@ -10,6 +10,7 @@ Usage:
     python generate_dictation.py --blocks 4 --double         # odd rows=single digit, even rows=double digit
     python generate_dictation.py --blocks 4 --double --min 2 --max 8  # custom single-digit range
     python generate_dictation.py --blocks 4 --all-double     # all rows=double digit (10–99)
+    python generate_dictation.py --blocks 4 --double-triple  # odd rows=double digit, even rows=triple digit
 """
 
 import random
@@ -75,7 +76,7 @@ def thin_border() -> Border:
     return Border(left=s, right=s, top=s, bottom=s)
 
 
-def write_block(ws, block_index: int, start_col: int, val_min: int, val_max: int, double_mode: bool = False, all_double: bool = False, all_triple: bool = False):
+def write_block(ws, block_index: int, start_col: int, val_min: int, val_max: int, double_mode: bool = False, all_double: bool = False, all_triple: bool = False, double_triple: bool = False):
     """
     Write one full block at the given starting column.
     Block layout (rows):
@@ -133,6 +134,11 @@ def write_block(ws, block_index: int, start_col: int, val_min: int, val_max: int
                 if all_triple:
                     val = random.randint(100, 999)
                 elif all_double:
+                    val = random.randint(10, 99)
+                elif double_triple and (r + 1) % 2 == 0:
+                    # alternating: odd rows=double digit, even rows=triple digit
+                    val = random.randint(100, 999)
+                elif double_triple:
                     val = random.randint(10, 99)
                 elif double_mode and (r + 1) % 2 == 0:
                     # alternating: odd rows=single digit, even rows=double digit
@@ -255,11 +261,13 @@ def main():
     print("    2 = Alternating (odd rows = single digit, even rows = double digit)")
     print("    3 = All double digit (10–99)")
     print("    4 = All triple digit (100–999)")
-    mode_choice = ask_int("Select mode", default=1, min_val=1, max_val=4)
+    print("    5 = Alternating (odd rows = double digit, even rows = triple digit)")
+    mode_choice = ask_int("Select mode", default=1, min_val=1, max_val=5)
 
-    double     = (mode_choice == 2)
-    all_double = (mode_choice == 3)
-    all_triple = (mode_choice == 4)
+    double        = (mode_choice == 2)
+    all_double    = (mode_choice == 3)
+    all_triple    = (mode_choice == 4)
+    double_triple = (mode_choice == 5)
 
     if double:
         print("  (Single-digit range applies to odd rows only. Double-digit is always 10–99.)")
@@ -270,6 +278,9 @@ def main():
         val_max = 99
     elif all_triple:
         val_min = 100
+        val_max = 999
+    elif double_triple:
+        val_min = 10
         val_max = 999
     else:
         val_min = ask_int("Min random value", default=1, min_val=1)
@@ -297,6 +308,10 @@ def main():
     elif all_triple:
         print(f"  │  Mode         : {'All triple digit':<24}│")
         print(f"  │  Value range  : {'100–999':<24}│")
+    elif double_triple:
+        print(f"  │  Mode         : {'Alternating (double + triple)':<24}│")
+        print(f"  │  Double range : {'10–99':<24}│")
+        print(f"  │  Triple range : {'100–999':<24}│")
     else:
         print(f"  │  Mode         : {'All single digit':<24}│")
         print(f"  │  Value range  : {f'{val_min}–{val_max}':<24}│")
@@ -325,7 +340,7 @@ def main():
         for b in range(blocks_this_sheet):
             block_width = 1 + NUM_COLS + BLOCK_GAP
             start_col   = 1 + b * block_width
-            write_block(ws, block_index, start_col, val_min, val_max, double, all_double, all_triple)
+            write_block(ws, block_index, start_col, val_min, val_max, double, all_double, all_triple, double_triple)
             block_index += 1
 
         ws.freeze_panes = "A2"
